@@ -8,6 +8,8 @@ Many older adults live alone. If they fall or suddenly get sick, nobody may noti
 
 Built for the [Congressional App Challenge](https://www.congressionalappchallenge.us/) 2026.
 
+▶️ **Demo video:** https://youtu.be/DDqL6EVBEi4
+
 <br clear="right"/>
 
 ## How it works
