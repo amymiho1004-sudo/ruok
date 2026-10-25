@@ -1,0 +1,88 @@
+1
+00:00:00,880 --> 00:00:04,780
+A few days ago, my neighbor, who lives alone, had to go to the hospital.
+
+2
+00:00:05,780 --> 00:00:08,440
+He called for help himself. But I kept wondering:
+
+3
+00:00:10,340 --> 00:00:11,400
+what if he couldn't?
+
+4
+00:00:11,960 --> 00:00:13,500
+No one would have known.
+
+5
+00:00:16,040 --> 00:00:19,800
+So my teammate and I built RUOK, short for "Are you okay?"
+
+6
+00:00:22,440 --> 00:00:28,200
+We designed the device on a Raspberry Pi Zero 2,
+and my teammate soldered every part by hand.
+
+7
+00:00:32,000 --> 00:00:36,460
+Inside are a 24-gigahertz radar sensor that detects movement,
+
+8
+00:00:36,580 --> 00:00:39,800
+and a microphone that only measures how loud the room is.
+
+9
+00:00:45,420 --> 00:00:49,640
+There's no camera, nothing to wear,
+and no audio is ever recorded.
+
+10
+00:00:54,110 --> 00:00:55,490
+This is the guardian app.
+
+11
+00:00:55,930 --> 00:00:58,250
+Mom's Room is green, so everything is normal.
+
+12
+00:01:01,270 --> 00:01:06,790
+The Living Room shows a warning:
+no motion or voice for a while.
+
+13
+00:01:08,450 --> 00:01:10,300
+And Dad's Room is offline.
+
+14
+00:01:12,140 --> 00:01:15,020
+Adding a device takes seconds. Give it a name,
+
+15
+00:01:15,240 --> 00:01:18,400
+and the server creates a unique ID and a secure token.
+
+16
+00:01:24,520 --> 00:01:27,180
+In this demo, the sensor data is simulated.
+
+17
+00:01:30,120 --> 00:01:37,360
+When something is wrong, RUOK creates an alert,
+like "Device offline" or "No activity."
+
+18
+00:01:41,120 --> 00:01:43,920
+If the silence continues, the alert becomes urgent.
+
+19
+00:01:48,410 --> 00:01:49,300
+RUOK:
+
+20
+00:01:49,830 --> 00:01:52,110
+independence for seniors, peace of mind for families.
+
+21
+00:01:52,830 --> 00:01:54,000
+Thank you.
+

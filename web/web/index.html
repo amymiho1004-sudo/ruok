@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>R U OK? Guardian Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#18202f; --muted:#657083; --line:#e4e7ee; --accent:#315efb; --danger:#d93025; --warn:#b06000; --ok:#118a42; }
+    body { margin:0; font-family: Arial, "Noto Sans KR", sans-serif; background:var(--bg); color:var(--text); }
+    header { background:#111827; color:white; padding:16px 22px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { font-size:20px; margin:0; }
+    main { max-width:1180px; margin:24px auto; padding:0 16px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap:16px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 8px 22px rgba(31,41,55,.05); }
+    .card h2 { margin:0 0 12px; font-size:18px; }
+    label { display:block; margin:10px 0 5px; font-size:13px; color:var(--muted); }
+    input, select, textarea { width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:10px; box-sizing:border-box; font-size:14px; }
+    button { border:0; background:var(--accent); color:white; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; margin-top:10px; }
+    button.secondary { background:#374151; }
+    button.ghost { background:#eef2ff; color:#273eaa; }
+    button.danger { background:var(--danger); }
+    button:disabled { opacity:.6; cursor:default; }
+    pre { white-space:pre-wrap; background:#f1f3f8; padding:12px; border-radius:10px; overflow:auto; }
+    .hidden { display:none; }
+    .status { font-weight:700; padding:6px 10px; border-radius:999px; display:inline-block; }
+    .normal, .sleeping { background:#e9f8ef; color:var(--ok); }
+    .warning { background:#fff4e5; color:var(--warn); }
+    .urgent, .offline { background:#fdecea; color:var(--danger); }
+    .info, .away, .vacation, .pause, .maintenance, .waiting { background:#eef2ff; color:#273eaa; }
+    .muted { color:var(--muted); font-size:13px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .device-card { border-top:1px solid var(--line); padding-top:14px; margin-top:14px; }
+    .small { font-size:12px; }
+    .empty { color:var(--muted); text-align:center; padding:18px 0; }
+    details.section { border:1px solid var(--line); border-radius:12px; margin-top:10px; }
+    details.section summary { cursor:pointer; padding:10px 14px; font-weight:600; list-style:none; }
+    details.section summary::-webkit-details-marker { display:none; }
+    details.section summary::before { content:"▸ "; color:var(--muted); }
+    details.section[open] summary::before { content:"▾ "; }
+    details.section .inner { padding:0 14px 14px; }
+    #toastHost { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:999; display:flex; flex-direction:column; gap:8px; align-items:center; }
+    .toast { background:#111827; color:white; padding:10px 16px; border-radius:10px; font-size:13px; box-shadow:0 8px 22px rgba(0,0,0,.2); }
+    .toast.error { background:var(--danger); }
+    .toast.ok { background:var(--ok); }
+  </style>
+</head>
+<body>
+<header>
+  <h1 id="brandTitle"></h1>
+  <div>
+    <span id="loginState" class="muted"></span>
+    <button class="secondary" id="logoutBtn" onclick="logout()"></button>
+  </div>
+</header>
+
+<main>
+  <section id="authSection" class="grid">
+    <div class="card">
+      <h2 id="loginTitle"></h2>
+      <label id="lblLoginEmail"></label>
+      <input id="loginEmail" placeholder="guardian@example.com" />
+      <label id="lblLoginPassword"></label>
+      <input id="loginPassword" type="password" />
+      <button id="btnLogin" onclick="login()"></button>
+    </div>
+    <div class="card">
+      <h2 id="registerTitle"></h2>
+      <label id="lblRegName"></label>
+      <input id="regName" placeholder="Guardian" />
+      <label id="lblRegEmail"></label>
+      <input id="regEmail" placeholder="guardian@example.com" />
+      <label id="lblRegPassword"></label>
+      <input id="regPassword" type="password" />
+      <label id="lblRegPhone"></label>
+      <input id="regPhone" placeholder="+1..." />
+      <button id="btnRegister" onclick="register()"></button>
+    </div>
+  </section>
+
+  <section id="appSection" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h2 id="createDeviceTitle"></h2>
+        <label id="lblFamilyName"></label>
+        <input id="familyName" value="My Family" />
+        <label id="lblDeviceName"></label>
+        <input id="deviceName" value="Mother Room Device" />
+        <label id="lblDeviceLocation"></label>
+        <input id="deviceLocation" value="Bedroom" />
+        <button id="btnCreateDevice" onclick="createDevice()"></button>
+        <pre id="createdDeviceBox" class="hidden"></pre>
+      </div>
+
+      <div class="card">
+        <h2 id="overviewTitle"></h2>
+        <button id="btnRefreshAll" onclick="loadAll()"></button>
+        <button class="ghost" id="btnEvalAlerts" onclick="evaluateAlerts()"></button>
+        <p class="muted" id="overviewHint"></p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2 id="devicesTitle"></h2>
+      <div id="devices"></div>
+    </div>
+
+    <div class="grid" style="margin-top:16px;">
+      <div class="card">
+        <h2 id="alertsTitle"></h2>
+        <button id="btnRefreshAlerts" onclick="loadAlerts()"></button>
+        <div id="alerts"></div>
+      </div>
+
+      <div class="card">
+        <h2 id="eventsTitle"></h2>
+        <div id="events"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toastHost"></div>
+
+<script>
+// ---------------------------------------------------------------- i18n
+const LANG = (navigator.language || "en").toLowerCase().startsWith("ko") ? "ko" : "en";
+document.documentElement.lang = LANG;
+
+const STR = {
+  en: {
+    brandTitle: "R U OK? Guardian Portal",
+    signOut: "Sign out",
+    signedIn: "Signed in",
+    signInRequired: "Sign in required",
+    loginTitle: "Sign in",
+    email: "Email",
+    password: "Password",
+    signIn: "Sign in",
+    registerTitle: "Create account",
+    name: "Name",
+    phoneOptional: "Phone (optional)",
+    createAccount: "Create account",
+    createDeviceTitle: "Create device",
+    familyName: "Family name",
+    deviceName: "Device name",
+    location: "Location",
+    createDevice: "Create device",
+    overviewTitle: "Overview",
+    refresh: "Refresh",
+    evalAlertsNow: "Evaluate alerts now",
+    overviewHint: "The server automatically evaluates status every 60 seconds.",
+    devicesTitle: "Devices",
+    alertsTitle: "Alert history",
+    refreshAlerts: "Refresh alerts",
+    eventsTitle: "Recent events",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    delete: "Delete",
+    deleteConfirm: name => `Delete "${name}"? Its event history will also be deleted.`,
+    location_: "Location",
+    mode_: "Mode",
+    lastMotion: "Last motion",
+    lastVoice: "Last voice",
+    lastSeen: "Last seen",
+    sleepSchedule: "Sleep schedule",
+    start: "Start",
+    end: "End",
+    days: "Days (0=Mon, 6=Sun)",
+    save: "Save",
+    presenceTitle: "Away / vacation / pause",
+    modeLabel: "Mode",
+    modeHome: "Back to home mode",
+    modeAway: "Away",
+    modeVacation: "Vacation",
+    modePause: "Pause",
+    modeMaintenance: "Maintenance",
+    hours: "Hours",
+    note: "Note",
+    notePlaceholder: "Away, trip, etc.",
+    apply: "Apply",
+    alertRulesTitle: "Alert rules",
+    normalWarning: "Daytime warning (min)",
+    normalUrgent: "Daytime urgent (min)",
+    sleepWarning: "Sleep warning (min)",
+    sleepUrgent: "Sleep urgent (min)",
+    offlineMin: "Offline (min)",
+    viewEvents: "View events",
+    acknowledge: "Acknowledge",
+    noDevices: "No devices yet. Create one above.",
+    noAlerts: "No alerts.",
+    noEvents: "No events yet.",
+    saving: "Saving…",
+    sleepSaved: "Sleep schedule saved.",
+    modeApplied: "Mode applied.",
+    rulesSaved: "Alert rules saved.",
+    evalDone: "Evaluation complete.",
+    deviceDeleted: "Device deleted.",
+  },
+  ko: {
+    brandTitle: "R U OK? 보호자 웹 포털",
+    signOut: "로그아웃",
+    signedIn: "로그인됨",
+    signInRequired: "로그인 필요",
+    loginTitle: "로그인",
+    email: "이메일",
+    password: "비밀번호",
+    signIn: "로그인",
+    registerTitle: "회원가입",
+    name: "이름",
+    phoneOptional: "전화번호 (선택)",
+    createAccount: "회원가입",
+    createDeviceTitle: "디바이스 생성",
+    familyName: "가족명",
+    deviceName: "디바이스 이름",
+    location: "설치 위치",
+    createDevice: "디바이스 생성",
+    overviewTitle: "전체 상태",
+    refresh: "새로고침",
+    evalAlertsNow: "알림 즉시 평가",
+    overviewHint: "서버는 60초마다 자동으로 상태를 평가합니다.",
+    devicesTitle: "디바이스 목록",
+    alertsTitle: "알림 기록",
+    refreshAlerts: "알림 새로고침",
+    eventsTitle: "최근 이벤트",
+    sessionExpired: "로그인이 만료되었습니다. 다시 로그인해주세요.",
+    delete: "삭제",
+    deleteConfirm: name => `"${name}" 디바이스를 삭제하시겠습니까? 이벤트 기록도 함께 삭제됩니다.`,
+    location_: "위치",
+    mode_: "현재모드",
+    lastMotion: "마지막 움직임",
+    lastVoice: "마지막 음성",
+    lastSeen: "마지막 연결",
+    sleepSchedule: "취침시간 설정",
+    start: "시작",
+    end: "종료",
+    days: "요일 (0=월, 6=일)",
+    save: "저장",
+    presenceTitle: "외출/휴가/일시중지",
+    modeLabel: "모드",
+    modeHome: "집 안 모드로 복귀",
+    modeAway: "외출",
+    modeVacation: "휴가",
+    modePause: "일시중지",
+    modeMaintenance: "점검",
+    hours: "시간",
+    note: "메모",
+    notePlaceholder: "외출, 여행 등",
+    apply: "적용",
+    alertRulesTitle: "알림 기준",
+    normalWarning: "일반 주의 (분)",
+    normalUrgent: "일반 긴급 (분)",
+    sleepWarning: "취침 주의 (분)",
+    sleepUrgent: "취침 긴급 (분)",
+    offlineMin: "오프라인 (분)",
+    viewEvents: "이벤트 보기",
+    acknowledge: "확인 완료",
+    noDevices: "아직 등록된 디바이스가 없습니다. 위에서 새로 만들어보세요.",
+    noAlerts: "알림이 없습니다.",
+    noEvents: "아직 이벤트가 없습니다.",
+    saving: "저장 중…",
+    sleepSaved: "취침시간이 저장되었습니다.",
+    modeApplied: "모드가 적용되었습니다.",
+    rulesSaved: "알림 기준이 저장되었습니다.",
+    evalDone: "평가가 완료되었습니다.",
+    deviceDeleted: "디바이스가 삭제되었습니다.",
+  },
+};
+
+function t(key, ...args) {
+  const entry = STR[LANG][key];
+  return typeof entry === "function" ? entry(...args) : entry;
+}
+
+function applyStaticI18n() {
+  document.getElementById("brandTitle").textContent = t("brandTitle");
+  document.getElementById("logoutBtn").textContent = t("signOut");
+  document.getElementById("loginTitle").textContent = t("loginTitle");
+  document.getElementById("lblLoginEmail").textContent = t("email");
+  document.getElementById("lblLoginPassword").textContent = t("password");
+  document.getElementById("btnLogin").textContent = t("signIn");
+  document.getElementById("registerTitle").textContent = t("registerTitle");
+  document.getElementById("lblRegName").textContent = t("name");
+  document.getElementById("lblRegEmail").textContent = t("email");
+  document.getElementById("lblRegPassword").textContent = t("password");
+  document.getElementById("lblRegPhone").textContent = t("phoneOptional");
+  document.getElementById("btnRegister").textContent = t("createAccount");
+  document.getElementById("createDeviceTitle").textContent = t("createDeviceTitle");
+  document.getElementById("lblFamilyName").textContent = t("familyName");
+  document.getElementById("lblDeviceName").textContent = t("deviceName");
+  document.getElementById("lblDeviceLocation").textContent = t("location");
+  document.getElementById("btnCreateDevice").textContent = t("createDevice");
+  document.getElementById("overviewTitle").textContent = t("overviewTitle");
+  document.getElementById("btnRefreshAll").textContent = t("refresh");
+  document.getElementById("btnEvalAlerts").textContent = t("evalAlertsNow");
+  document.getElementById("overviewHint").textContent = t("overviewHint");
+  document.getElementById("devicesTitle").textContent = t("devicesTitle");
+  document.getElementById("alertsTitle").textContent = t("alertsTitle");
+  document.getElementById("btnRefreshAlerts").textContent = t("refreshAlerts");
+  document.getElementById("eventsTitle").textContent = t("eventsTitle");
+}
+
+// ------------------------------------------------------------- toast/ui
+function toast(message, kind) {
+  const host = document.getElementById("toastHost");
+  const el = document.createElement("div");
+  el.className = "toast" + (kind ? " " + kind : "");
+  el.textContent = message;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function confirmDialog(message) {
+  return Promise.resolve(confirm(message));
+}
+
+async function withBusy(button, busyText, fn) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = busyText;
+  try {
+    await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+// ---------------------------------------------------------------- api
+const API = "";
+const tokenKey = "ruok_guardian_token";
+
+function token() { return localStorage.getItem(tokenKey); }
+function headers() { return { "Content-Type": "application/json", "Authorization": "Bearer " + token() }; }
+
+async function api(path, opts={}) {
+  const res = await fetch(API + path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && path !== "/api/auth/login" && path !== "/api/auth/register") {
+    localStorage.removeItem(tokenKey);
+    showApp();
+    throw new Error(t("sessionExpired"));
+  }
+  if (!res.ok) throw new Error(data.detail || res.statusText);
+  return data;
+}
+
+function showApp() {
+  const logged = !!token();
+  document.getElementById("authSection").classList.toggle("hidden", logged);
+  document.getElementById("appSection").classList.toggle("hidden", !logged);
+  document.getElementById("loginState").textContent = logged ? t("signedIn") : t("signInRequired");
+  if (logged) loadAll();
+}
+
+async function register() {
+  try {
+    const data = await api("/api/auth/register", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        name:regName.value, email:regEmail.value, password:regPassword.value, phone:regPhone.value
+      })
+    });
+    localStorage.setItem(tokenKey, data.token);
+    showApp();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function login() {
+  try {
+    const data = await api("/api/auth/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ email:loginEmail.value, password:loginPassword.value })
+    });
+    localStorage.setItem(tokenKey, data.token);
+    showApp();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+function logout() {
+  localStorage.removeItem(tokenKey);
+  showApp();
+}
+
+async function createDevice() {
+  try {
+    const data = await api("/api/devices", {
+      method:"POST", headers:headers(),
+      body:JSON.stringify({ family_name:familyName.value, name:deviceName.value, location:deviceLocation.value })
+    });
+    const config = {
+      server_url: location.origin,
+      device_uid: data.device.device_uid,
+      device_token: data.device_token,
+      heartbeat_seconds: 60,
+      motion: { enabled: true, mode: "mock", serial_port: "/dev/ttyS0", baudrate: 256000, min_interval_seconds: 30 },
+      voice: { enabled: true, use_arecord: true, threshold_rms: 500, sample_seconds: 2, interval_seconds: 30 }
+    };
+    const introEn = "Device created. Save the following into the Raspberry Pi device/config/config.json:";
+    const introKo = "디바이스 생성 완료. 아래 내용을 라즈베리파이 device/config/config.json에 저장하세요:";
+    createdDeviceBox.textContent = (LANG === "ko" ? introKo : introEn) + "\n\n" + JSON.stringify(config, null, 2);
+    createdDeviceBox.classList.remove("hidden");
+    loadAll();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function loadAll() {
+  if (!token()) return;
+  await loadDevices();
+  await loadAlerts();
+}
+
+async function deleteDevice(id, name, btn) {
+  const ok = await confirmDialog(t("deleteConfirm", name));
+  if (!ok) return;
+  try {
+    await withBusy(btn, t("saving"), async () => {
+      await api(`/api/devices/${id}`, { method:"DELETE", headers:headers() });
+    });
+    toast(t("deviceDeleted"), "ok");
+    loadAll();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function loadDevices() {
+  const data = await api("/api/devices", { headers:headers() });
+  if (!data.devices.length) {
+    devices.innerHTML = `<p class="empty">${escapeHtml(t("noDevices"))}</p>`;
+    return;
+  }
+  devices.innerHTML = "";
+  data.devices.forEach(d => {
+    const s = d.computed || {};
+    const div = document.createElement("div");
+    div.className = "device-card";
+    div.innerHTML = `
+      <div class="row">
+        <h3>${escapeHtml(d.name)} <span class="muted">(${escapeHtml(d.device_uid)})</span></h3>
+        <span class="status ${s.status || 'info'}">${s.status || d.status}</span>
+        <button class="secondary" data-role="delete">${escapeHtml(t("delete"))}</button>
+      </div>
+      <p>${escapeHtml(s.reason || "")}</p>
+      <p class="muted">
+        ${escapeHtml(t("location_"))}: ${escapeHtml(d.location || "-")} |
+        ${escapeHtml(t("mode_"))}: ${escapeHtml(s.active_mode || "-")} |
+        ${escapeHtml(t("lastMotion"))}: ${escapeHtml(s.last_motion_at || "-")} |
+        ${escapeHtml(t("lastVoice"))}: ${escapeHtml(s.last_voice_at || "-")} |
+        ${escapeHtml(t("lastSeen"))}: ${escapeHtml(s.last_seen_at || "-")}
+      </p>
+      <details class="section">
+        <summary>${escapeHtml(t("sleepSchedule"))}</summary>
+        <div class="inner">
+          <label>${escapeHtml(t("start"))}</label><input id="sleepStart${d.id}" value="22:00">
+          <label>${escapeHtml(t("end"))}</label><input id="sleepEnd${d.id}" value="07:00">
+          <label>${escapeHtml(t("days"))}</label><input id="sleepDays${d.id}" value="0,1,2,3,4,5,6">
+          <button data-role="saveSleep">${escapeHtml(t("save"))}</button>
+        </div>
+      </details>
+      <details class="section">
+        <summary>${escapeHtml(t("presenceTitle"))}</summary>
+        <div class="inner">
+          <label>${escapeHtml(t("modeLabel"))}</label>
+          <select id="modeType${d.id}">
+            <option value="home">${escapeHtml(t("modeHome"))}</option>
+            <option value="away">${escapeHtml(t("modeAway"))}</option>
+            <option value="vacation">${escapeHtml(t("modeVacation"))}</option>
+            <option value="pause">${escapeHtml(t("modePause"))}</option>
+            <option value="maintenance">${escapeHtml(t("modeMaintenance"))}</option>
+          </select>
+          <label>${escapeHtml(t("hours"))}</label><input id="modeHours${d.id}" type="number" value="4">
+          <label>${escapeHtml(t("note"))}</label><input id="modeNote${d.id}" placeholder="${escapeHtml(t("notePlaceholder"))}">
+          <button data-role="saveMode">${escapeHtml(t("apply"))}</button>
+        </div>
+      </details>
+      <details class="section">
+        <summary>${escapeHtml(t("alertRulesTitle"))}</summary>
+        <div class="inner">
+          <label>${escapeHtml(t("normalWarning"))}</label><input id="nw${d.id}" type="number" value="180">
+          <label>${escapeHtml(t("normalUrgent"))}</label><input id="nu${d.id}" type="number" value="360">
+          <label>${escapeHtml(t("sleepWarning"))}</label><input id="sw${d.id}" type="number" value="720">
+          <label>${escapeHtml(t("sleepUrgent"))}</label><input id="su${d.id}" type="number" value="840">
+          <label>${escapeHtml(t("offlineMin"))}</label><input id="off${d.id}" type="number" value="30">
+          <button data-role="saveRules">${escapeHtml(t("save"))}</button>
+        </div>
+      </details>
+      <button class="ghost" data-role="viewEvents" style="margin-top:10px;">${escapeHtml(t("viewEvents"))}</button>
+    `;
+    div.querySelector('[data-role="delete"]').onclick = (ev) => deleteDevice(d.id, d.name, ev.target);
+    div.querySelector('[data-role="saveSleep"]').onclick = (ev) => saveSleep(d.id, ev.target);
+    div.querySelector('[data-role="saveMode"]').onclick = (ev) => saveMode(d.id, ev.target);
+    div.querySelector('[data-role="saveRules"]').onclick = (ev) => saveRules(d.id, ev.target);
+    div.querySelector('[data-role="viewEvents"]').onclick = () => loadEvents(d.id);
+    devices.appendChild(div);
+  });
+}
+
+async function saveSleep(id, btn) {
+  try {
+    await withBusy(btn, t("saving"), async () => {
+      await api(`/api/devices/${id}/sleep-schedule`, {
+        method:"POST", headers:headers(),
+        body:JSON.stringify({
+          start_time:document.getElementById(`sleepStart${id}`).value,
+          end_time:document.getElementById(`sleepEnd${id}`).value,
+          days_of_week:document.getElementById(`sleepDays${id}`).value,
+          enabled:true
+        })
+      });
+    });
+    toast(t("sleepSaved"), "ok");
+    loadDevices();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function saveMode(id, btn) {
+  try {
+    const type = document.getElementById(`modeType${id}`).value;
+    const hours = Number(document.getElementById(`modeHours${id}`).value || 4);
+    const start = new Date();
+    const end = new Date(start.getTime() + hours * 3600 * 1000);
+    await withBusy(btn, t("saving"), async () => {
+      await api(`/api/devices/${id}/presence-mode`, {
+        method:"POST", headers:headers(),
+        body:JSON.stringify({
+          mode_type:type,
+          start_at:start.toISOString(),
+          end_at:type === "home" ? null : end.toISOString(),
+          note:document.getElementById(`modeNote${id}`).value,
+          enabled:true
+        })
+      });
+    });
+    toast(t("modeApplied"), "ok");
+    loadDevices();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function saveRules(id, btn) {
+  try {
+    await withBusy(btn, t("saving"), async () => {
+      await api(`/api/devices/${id}/alert-rules`, {
+        method:"POST", headers:headers(),
+        body:JSON.stringify({
+          normal_warning_minutes:Number(document.getElementById(`nw${id}`).value),
+          normal_urgent_minutes:Number(document.getElementById(`nu${id}`).value),
+          sleep_warning_minutes:Number(document.getElementById(`sw${id}`).value),
+          sleep_urgent_minutes:Number(document.getElementById(`su${id}`).value),
+          offline_minutes:Number(document.getElementById(`off${id}`).value),
+          enabled:true
+        })
+      });
+    });
+    toast(t("rulesSaved"), "ok");
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function loadAlerts() {
+  const data = await api("/api/alerts", { headers:headers() });
+  if (!data.alerts.length) {
+    alerts.innerHTML = `<p class="empty">${escapeHtml(t("noAlerts"))}</p>`;
+    return;
+  }
+  alerts.innerHTML = "";
+  data.alerts.forEach(a => {
+    const div = document.createElement("div");
+    div.style.cssText = "border-top:1px solid #e4e7ee; padding:10px 0;";
+    div.innerHTML = `
+      <b>${escapeHtml(a.title)}</b>
+      <span class="status ${a.severity}">${a.severity}</span>
+      <p>${escapeHtml(a.message)}</p>
+      <p class="muted">${escapeHtml(a.device_name)} | ${escapeHtml(a.created_at)} | ${escapeHtml(a.status)}</p>
+      ${a.status === "pending" || a.status === "sent" ? `<button data-role="ack">${escapeHtml(t("acknowledge"))}</button>` : ""}
+    `;
+    const ackBtn = div.querySelector('[data-role="ack"]');
+    if (ackBtn) ackBtn.onclick = () => ackAlert(a.id);
+    alerts.appendChild(div);
+  });
+}
+
+async function ackAlert(id) {
+  try {
+    await api(`/api/alerts/${id}/acknowledge`, { method:"POST", headers:headers() });
+    loadAlerts();
+  } catch(e) { toast(e.message, "error"); }
+}
+
+async function loadEvents(id) {
+  const data = await api(`/api/devices/${id}/events`, { headers:headers() });
+  if (!data.events.length) {
+    events.innerHTML = `<p class="empty">${escapeHtml(t("noEvents"))}</p>`;
+    return;
+  }
+  events.innerHTML = data.events.map(e => `
+    <div style="border-top:1px solid #e4e7ee; padding:8px 0;">
+      <b>${escapeHtml(e.event_type)}</b> ${e.detected === null ? "" : "detected=" + e.detected}
+      <p class="muted">${escapeHtml(e.created_at)}</p>
+      <pre class="small">${escapeHtml(e.raw_json || "")}</pre>
+    </div>
+  `).join("");
+}
+
+async function evaluateAlerts() {
+  try {
+    await api("/api/admin/evaluate-alerts", { method:"POST", headers:headers() });
+    await loadAlerts();
+    toast(t("evalDone"), "ok");
+  } catch(e) { toast(e.message, "error"); }
+}
+
+function escapeHtml(v) {
+  return String(v ?? "").replace(/[&<>"']/g, s => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[s]));
+}
+
+applyStaticI18n();
+showApp();
+setInterval(() => { if (token()) loadAll(); }, 30000);
+</script>
+</body>
+</html>

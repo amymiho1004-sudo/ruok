@@ -1,0 +1,44 @@
+# --- secrets / private (never publish) ---
+ACCOUNTS.md
+**/.testmode_creds.json
+**/.env
+device/config/config.json
+docs/RUOK_Admin_Manual.*
+demo_video/demo_devices.json
+demo_video/demo_events.py
+RUOK_Project_Status_Report.pdf
+
+# --- data / backups ---
+web/data/
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+*.log
+
+# --- large media (link the demo video from YouTube instead) ---
+demo_video/*.mp4
+demo_video/*.m4a
+pic/KakaoTalk_*
+
+# --- python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# --- flutter / android build output ---
+app/build/
+app/.dart_tool/
+app/android/.gradle/
+app/android/local.properties
+app/android/app/debug/
+app/android/app/release/
+
+# --- editors / os ---
+.claude/
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+.DS_Store

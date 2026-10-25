@@ -1,0 +1,17 @@
+[Unit]
+Description=R U OK? Raspberry Pi Device Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/ruok_device_python
+ExecStart=/home/pi/ruok_device_python/.venv/bin/python /home/pi/ruok_device_python/main.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=8
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

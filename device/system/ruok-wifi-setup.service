@@ -1,0 +1,17 @@
+[Unit]
+Description=R U OK? Wi-Fi Setup Button Watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/ruok_device_python
+ExecStart=/home/pi/ruok_device_python/.venv/bin/python -m wifi_setup.button_watcher
+Restart=always
+RestartSec=5
+User=pi
+Environment=PYTHONUNBUFFERED=1
+Environment=GPIOZERO_PIN_FACTORY=lgpio
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,27 @@
+{
+  "server_url": "http://127.0.0.1:8787",
+  "device_uid": "RUOK-CHANGE-ME",
+  "device_token": "dev_CHANGE_ME",
+  "heartbeat_seconds": 60,
+  "offline_flush_seconds": 20,
+  "battery_level": null,
+  "wifi_strength": null,
+  "motion": {
+    "enabled": true,
+    "mode": "mock",
+    "serial_port": "/dev/ttyS0",
+    "baudrate": 256000,
+    "min_interval_seconds": 30,
+    "mock_probability": 0.25
+  },
+  "voice": {
+    "enabled": true,
+    "use_arecord": true,
+    "capture_device": "plughw:0,0",
+    "sample_rate": 16000,
+    "threshold_rms": 500,
+    "sample_seconds": 2,
+    "interval_seconds": 30,
+    "min_interval_seconds": 60
+  }
+}
